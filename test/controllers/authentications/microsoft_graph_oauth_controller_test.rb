@@ -25,7 +25,8 @@ class Authentications::MicrosoftGraphOauthControllerTest < ActionDispatch::Integ
       credentials: {
         token: "abc123",
         refresh_token: "xyz789",
-        scope: "openid profile email offline_access user.read mailboxsettings.read files.read.all"
+        expires_at: 30.minutes.from_now.to_i,
+        scope: "openid profile email offline_access user.read mailboxsettings.read"
       },
       info: { email: "rob.personal@gmail.com" }
     }
