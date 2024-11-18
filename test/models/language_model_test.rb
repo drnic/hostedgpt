@@ -100,18 +100,36 @@ class LanguageModelTest < ActiveSupport::TestCase
     assert_equal models.first.keys.sort, %w[api_name name best supports_images supports_tools supports_system_message input_token_cost_cents output_token_cost_cents api_service_name].sort
   end
 
-  test "import_from_file with only new models" do
+  test "export_to_file also includes api_services" do
+    path = Rails.root.join("tmp/models.yaml")
+    LanguageModel.export_to_file(path:, models: users(:rob).language_models.not_deleted)
+    assert File.exist?(path)
+    storage = YAML.load_file(path)
+    api_services = storage["api_services"]
+    assert_equal 2, api_services.count
+    assert_equal api_services.first.keys.sort, %w[name url driver].sort
+    assert api_services.any? { |service| service["name"] == "OpenAI" }
+    assert api_services.any? { |service| service["name"] == "Anthropic" }
+  end
+
+  test "import_from_file with only new models and api_services" do
     models = [{
       api_name: "new-model",
       name: "new model",
-      api_service_name: api_services(:rob_openai_service).name,
+      api_service_name: "TestService",
       supports_images: true,
       supports_tools: true,
       input_token_cost_cents: 1,
       output_token_cost_cents: 1
     }]
+    api_services = [{
+      name: "TestService",
+      url: "https://test.com",
+      driver: "openai"
+    }]
     storage = {
-      "models" => models
+      "models" => models,
+      "api_services" => api_services
     }
     path = Rails.root.join("tmp/newmodels.yaml")
     File.write(path, storage.to_yaml)
@@ -119,6 +137,7 @@ class LanguageModelTest < ActiveSupport::TestCase
       LanguageModel.import_from_file(path:, users: users(:rob))
     end
     assert users(:rob).language_models.find_by(api_name: "new-model")
+    assert users(:rob).api_services.find_by(name: "TestService")
   end
 
   test "import_from_file with existing models by api_name" do

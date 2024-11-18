@@ -25,9 +25,13 @@ module LanguageModel::Export
   class_methods do
     def export_to_file(path: Rails.root.join(LanguageModel::Export::DEFAULT_MODEL_FILE), models:, only: DEFAULT_EXPORT_ONLY)
       path = path.to_s
+
+      api_services = APIService.joins(:language_models).merge(models).distinct
       storage = {
-        "models" => models.as_json(only:)
+        "models" => models.as_json(only:),
+        "api_services" => api_services.as_json(only: %i[name url driver])
       }
+
       if path.ends_with?(".json")
         File.write(path, storage.to_json)
       else
